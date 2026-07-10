@@ -33,12 +33,12 @@
       "name": "Aguardar saldo (R$)",
       "action": "wait",
       "target": {"texto_contem": "R$"},
-      "timeout": 20
+      "timeout": 30
     },
     {
       "name": "Extrair saldo",
       "action": "extract",
-      "target": {"texto_contem": "R$"},
+      "target": {"resource_id": "br.com.intermedium:id/2131439999", "texto_contem": "R$"},
       "save_as": "saldo",
       "timeout": 10
     },
