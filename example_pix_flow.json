@@ -87,7 +87,18 @@
     {
       "name": "Aguardar campo de chave Pix",
       "action": "wait",
-      "target": {"classe": "android.widget.EditText"},
+      "target": [
+        {
+          "resource_id": "br.com.intermedium:id/2131438611",
+          "text": "Chave, Copia e Cola ou Perfil do Fórum"
+        },
+        {
+          "resource_id": "br.com.intermedium:id/2131438611"
+        },
+        {
+          "classe": "android.widget.EditText"
+        }
+      ],
       "timeout": 8,
       "retries": 2,
       "retry_delay": 0.2
@@ -102,20 +113,53 @@
         {
           "name": "Verificar se está na tela de chave Pix",
           "action": "if",
-          "condicao": {"classe": "android.widget.EditText"},
+          "condicao": [
+            {
+              "resource_id": "br.com.intermedium:id/2131438611",
+              "text": "Chave, Copia e Cola ou Perfil do Fórum"
+            },
+            {
+              "resource_id": "br.com.intermedium:id/2131438611"
+            },
+            {
+              "classe": "android.widget.EditText"
+            }
+          ],
           "timeout": 10,
           "then": [
             {
               "name": "Limpar campo de chave",
               "action": "type",
-              "target": {"classe": "android.widget.EditText"},
+              "target": [
+                {
+                  "resource_id": "br.com.intermedium:id/2131438611",
+                  "text": "Chave, Copia e Cola ou Perfil do Fórum"
+                },
+                {
+                  "resource_id": "br.com.intermedium:id/2131438611"
+                },
+                {
+                  "classe": "android.widget.EditText"
+                }
+              ],
               "value": "",
               "timeout": 5
             },
             {
               "name": "Digitar chave Pix atual",
               "action": "type",
-              "target": {"classe": "android.widget.EditText"},
+              "target": [
+                {
+                  "resource_id": "br.com.intermedium:id/2131438611",
+                  "text": "Chave, Copia e Cola ou Perfil do Fórum"
+                },
+                {
+                  "resource_id": "br.com.intermedium:id/2131438611"
+                },
+                {
+                  "classe": "android.widget.EditText"
+                }
+              ],
               "value": "$chave",
               "timeout": 10
             },
@@ -181,7 +225,18 @@
                 {
                   "name": "Limpar campo de chave",
                   "action": "type",
-                  "target": {"classe": "android.widget.EditText"},
+                  "target": [
+                    {
+                      "resource_id": "br.com.intermedium:id/2131438611",
+                      "text": "Chave, Copia e Cola ou Perfil do Fórum"
+                    },
+                    {
+                      "resource_id": "br.com.intermedium:id/2131438611"
+                    },
+                    {
+                      "classe": "android.widget.EditText"
+                    }
+                  ],
                   "value": "",
                   "timeout": 5
                 }
@@ -307,7 +362,18 @@
                 {
                   "name": "Aguardar tela de chave",
                   "action": "wait",
-                  "target": {"classe": "android.widget.EditText"},
+                  "target": [
+                    {
+                      "resource_id": "br.com.intermedium:id/2131438611",
+                      "text": "Chave, Copia e Cola ou Perfil do Fórum"
+                    },
+                    {
+                      "resource_id": "br.com.intermedium:id/2131438611"
+                    },
+                    {
+                      "classe": "android.widget.EditText"
+                    }
+                  ],
                   "timeout": 8,
                   "retries": 2,
                   "retry_delay": 0.2
