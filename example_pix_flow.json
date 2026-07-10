@@ -365,20 +365,28 @@
                   "message": "🎉 Pix enviado! ($chave) — $valor_pagar"
                 },
                 {
-                  "name": "Aguardar botão Realizar novo pix",
-                  "action": "wait",
-                  "target": [{"texto_contem": ["Realizar novo pix", "Fazer novo pix", "New payment", "Nova transferência"]}, {"classe": "android.widget.Button"}],
-                  "timeout": 8,
-                  "retries": 2,
-                  "retry_delay": 0.2
-                },
-                {
-                  "name": "Clicar em Realizar novo pix",
-                  "action": "click",
-                  "target": [{"texto_contem": ["Realizar novo pix", "Fazer novo pix", "New payment", "Nova transferência"]}, {"classe": "android.widget.Button"}],
+                  "name": "Tentar localizar Realizar novo Pix",
+                  "action": "if",
+                  "condicao": [
+                    {"texto_contem": ["Realizar novo pix", "Fazer novo pix", "New payment", "Nova transferência", "Realizar novo Pix"]}
+                  ],
                   "timeout": 5,
-                  "retries": 2,
-                  "retry_delay": 0.2
+                  "then": [
+                    {
+                      "name": "Clicar em Realizar novo pix",
+                      "action": "click",
+                      "target": [{"texto_contem": ["Realizar novo pix", "Fazer novo pix", "New payment", "Nova transferência", "Realizar novo Pix"]}, {"classe": "android.widget.Button"}],
+                      "timeout": 5,
+                      "retries": 2,
+                      "retry_delay": 0.2
+                    },
+                    {
+                      "name": "Aguardar retorno para tela de chave",
+                      "action": "delay",
+                      "seconds": 2
+                    }
+                  ],
+                  "else": []
                 },
                 {
                   "name": "Aguardar tela de chave",
