@@ -16,6 +16,8 @@ def main():
     parser.add_argument("--serial", help="Android device serial to connect")
     parser.add_argument("--host", help="Android device host for TCP connection")
     parser.add_argument("--port", type=int, default=5555, help="Port for TCP connection")
+    parser.add_argument("--package", help="Android package to launch before running flow")
+    parser.add_argument("--result", help="Path to save the result JSON file")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     args = parser.parse_args()
 
@@ -23,13 +25,24 @@ def main():
     logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
     connector = AdbDeviceConnector(serial=args.serial, host=args.host, port=args.port)
-    device = connector.connect()
+    try:
+        device = connector.connect()
+    except Exception as exc:
+        logger.error("Failed to connect to Android device: %s", exc)
+        raise SystemExit(1)
+
     flow = load_flow(args.flow)
+    if args.package:
+        flow["package"] = args.package
 
     runner = FlowRunner(device)
-    results = runner.run_flow(flow)
+    try:
+        results = runner.run_flow(flow)
+    except Exception as exc:
+        logger.error("Flow execution failed: %s", exc)
+        raise SystemExit(1)
 
-    output_path = Path(args.flow).with_suffix(".result.json")
+    output_path = Path(args.result) if args.result else Path(args.flow).with_suffix(".result.json")
     with output_path.open("w", encoding="utf-8") as handle:
         json.dump(results, handle, indent=2, ensure_ascii=False)
 

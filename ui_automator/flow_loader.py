@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-
 TARGET_KEY_MAP = {
     "classe": "className",
     "resourceId": "resourceId",
@@ -11,13 +10,24 @@ TARGET_KEY_MAP = {
     "descricao": "description",
     "descricao_contem": "containsDescription",
     "description": "description",
+    "className": "className",
+    "text": "text",
 }
 
 ACTION_MAP = {
     "wait": "wait_for",
     "click": "tap",
+    "tap": "tap",
     "type": "set_text",
+    "input": "set_text",
     "sleep": "sleep",
+    "delay": "sleep",
+    "press_back": "press_back",
+    "back": "press_back",
+    "extract": "extract",
+    "log": "log",
+    "launch_app": "launch_app",
+    "dump": "dump",
 }
 
 
@@ -59,6 +69,7 @@ def normalize_step(step: Dict[str, Any]) -> Dict[str, Any]:
         "description": step.get("description"),
         "package": step.get("package"),
         "save_as": step.get("save_as"),
+        "continue_on_failure": step.get("continue_on_failure", False),
         "on_failure": step.get("on_failure", []),
         "message": step.get("message") or step.get("mensagem"),
     }

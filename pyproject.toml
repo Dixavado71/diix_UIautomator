@@ -25,5 +25,8 @@ dependencies = [
 [project.urls]
 Home = "https://github.com/Dixavado71/diix_UIautomator"
 
+[project.optional-dependencies]
+tests = ["pytest>=7.0"]
+
 [project.scripts]
 diix-ui-automator = "ui_automator.cli:main"

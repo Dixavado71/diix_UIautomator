@@ -50,50 +50,79 @@ O resultado é salvo em um arquivo JSON com o mesmo nome da entrada, mas sufixad
 O arquivo de fluxo deve conter um objeto principal com a lista `steps`.
 Cada passo pode ter as chaves:
 
-- `action`: ação a executar (`wait_for`, `tap`, `set_text`, `dump`, `press_back`, `sleep`)
-- `selector`: objeto de seleção do elemento (`resourceId`, `className`, `text`, `description`)
+- `name`: nome descritivo do passo
+- `action`: ação a executar (`launch_app`, `wait`, `click`, `type`, `extract`, `log`, `dump`, `press_back`, `sleep`)
+- `target`: seletor do elemento a ser encontrado (`classe`, `resourceId`, `texto`, `texto_contem`, `descricao`, `descricao_contem`)
+- `selector`: alternativa ao `target` para usar chaves de UIAutomator2 diretamente (`className`, `resourceId`, `text`, `description`)
 - `value`: valor para digitação ou tempo de espera
+- `message`: texto para `log`
+- `save_as`: nome da variável a salvar com o texto extraído
 - `timeout`: tempo máximo de espera em segundos
-- `description`: descrição opcional do passo
+- `on_failure`: lista de ações de fallback, como `delay:2` ou `log:falha`
+- `continue_on_failure`: `true` para seguir o fluxo após erro
 
-Exemplo:
+A seguir está um fluxo de login realista para o app Inter (`br.com.intermedium`):
 
 ```json
 {
+  "package": "br.com.intermedium",
+  "variables": {
+    "senhas": ["minha_senha_inter"]
+  },
   "steps": [
     {
-      "action": "wait_for",
-      "selector": {
-        "text": "Entrar"
-      },
-      "timeout": 20,
-      "description": "Aguardar o botão Entrar aparecer"
+      "name": "Abrir app Inter",
+      "action": "launch_app",
+      "package": "br.com.intermedium",
+      "timeout": 15
     },
     {
-      "action": "tap",
-      "selector": {
-        "text": "Entrar"
+      "name": "Aguardar campo de senha",
+      "action": "wait",
+      "target": {
+        "classe": "android.widget.EditText"
       },
-      "description": "Clicar no botão Entrar"
+      "timeout": 20
     },
     {
-      "action": "wait_for",
-      "selector": {
-        "resourceId": "com.example:id/password"
+      "name": "Digitar senha",
+      "action": "type",
+      "target": {
+        "classe": "android.widget.EditText"
       },
-      "description": "Aguardar o campo de senha"
+      "value": "$senhas.0",
+      "timeout": 10
     },
     {
-      "action": "set_text",
-      "selector": {
-        "resourceId": "com.example:id/password"
+      "name": "Clicar em Entrar",
+      "action": "click",
+      "target": {
+        "texto_contem": "Entrar"
       },
-      "value": "minha_senha",
-      "description": "Digitar senha"
+      "timeout": 15,
+      "on_failure": ["delay:2"]
     },
     {
-      "action": "dump",
-      "description": "Realizar dump da tela atual"
+      "name": "Aguardar saldo (R$)",
+      "action": "wait",
+      "target": {
+        "texto_contem": "R$"
+      },
+      "timeout": 20
+    },
+    {
+      "name": "Extrair saldo",
+      "action": "extract",
+      "target": {
+        "texto_contem": "R$"
+      },
+      "save_as": "saldo",
+      "timeout": 10
+    },
+    {
+      "name": "Logar saldo",
+      "action": "log",
+      "message": "💰 Saldo extraído: $saldo"
     }
   ]
 }
@@ -102,5 +131,15 @@ Exemplo:
 ## Observações
 
 - O `DumpManager` detecta mudanças de página usando hash do dump XML e mantém cache para evitar leituras repetidas quando a tela não muda.
-- O `ElementFinder` tenta localizar elementos por seletores exatos e usa XPath como fallback para buscas por texto ou descrição.
-- O fluxo é facilmente estendido adicionando novas ações em `ui_automator/action_runner.py`.
+- O `ElementFinder` tenta localizar elementos por seletores exatos e usa XPath como fallback para buscas por texto, descrição ou classes.
+- O `FlowRunner` resolve variáveis em `value`, `message` e em seletores, permitindo usar `$saldo` e `$senhas.0` no fluxo.
+- O fluxo suporta `continue_on_failure` para prosseguir após erro, e `on_failure` para ações como `delay:2` e `log:...`.
+
+## Testes
+
+Para executar testes com `pytest`:
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```

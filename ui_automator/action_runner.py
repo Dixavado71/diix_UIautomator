@@ -20,7 +20,7 @@ class FlowRunner:
 
     def _resolve_variable(self, path: str) -> Any:
         cursor = self.context
-        for segment in path.split("."):
+        for segment in path.split('.'):
             if isinstance(cursor, dict) and segment in cursor:
                 cursor = cursor[segment]
             elif isinstance(cursor, list) and segment.isdigit():
@@ -31,7 +31,7 @@ class FlowRunner:
         return cursor
 
     def _resolve_text(self, value: Any) -> Any:
-        if not isinstance(value, str) or "$" not in value:
+        if not isinstance(value, str) or '$' not in value:
             return value
 
         def _replace(match: re.Match) -> str:
@@ -39,6 +39,15 @@ class FlowRunner:
             return str(replacement)
 
         return re.sub(r"\$([a-zA-Z_][\w\.]*)", _replace, value)
+
+    def _resolve_data(self, data: Any) -> Any:
+        if isinstance(data, str):
+            return self._resolve_text(data)
+        if isinstance(data, dict):
+            return {key: self._resolve_data(value) for key, value in data.items()}
+        if isinstance(data, list):
+            return [self._resolve_data(value) for value in data]
+        return data
 
     def _extract_text(self, element: Any) -> str:
         text = ""
@@ -102,7 +111,11 @@ class FlowRunner:
             self.device.press("back")
             return None
         if action == "sleep":
-            time.sleep(int(value or 1))
+            try:
+                sleep_seconds = float(value or 1)
+            except (TypeError, ValueError):
+                sleep_seconds = 1.0
+            time.sleep(sleep_seconds)
             return None
         if action == "launch_app":
             package = step.get("package") or self.flow_package
@@ -128,19 +141,24 @@ class FlowRunner:
     def run_flow(self, flow: Dict[str, Any]) -> List[Dict[str, Any]]:
         self.context = flow.get("variables", {}).copy() if isinstance(flow.get("variables"), dict) else {}
         self.flow_package = flow.get("package")
-        if self.flow_package:
+        steps = get_steps(flow)
+        if self.flow_package and not any(step.get("action") == "launch_app" for step in steps):
             logger.info("Launching flow package: %s", self.flow_package)
             self.device.app_start(self.flow_package)
 
         results: List[Dict[str, Any]] = []
-        for step in get_steps(flow):
-            step["value"] = self._resolve_text(step.get("value")) if step.get("value") else None
-            step["message"] = self._resolve_text(step.get("message")) if step.get("message") else None
+        for step in steps:
+            step["selector"] = self._resolve_data(step.get("selector", {}))
+            step["value"] = self._resolve_data(step.get("value"))
+            step["message"] = self._resolve_data(step.get("message"))
             try:
                 result = self._perform_action(step)
             except Exception as error:
                 logger.warning("Step failed '%s': %s", step.get("name") or step.get("action"), error)
                 self._handle_failure(step.get("on_failure"))
+                if step.get("continue_on_failure"):
+                    results.append({"step": step, "error": str(error)})
+                    continue
                 raise
             results.append({"step": step, "result": result})
         return results

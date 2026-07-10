@@ -56,7 +56,7 @@
     {
       "name": "Logar saldo",
       "action": "log",
-      "mensagem": "💰 Saldo extraído: $saldo"
+      "message": "💰 Saldo extraído: $saldo"
     }
   ]
 }
