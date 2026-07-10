@@ -54,22 +54,22 @@ def load_flow(path: str) -> Dict[str, Any]:
     return flow
 
 
-def _normalize_target(target: Dict[str, Any]) -> Dict[str, Any]:
-    selector: Dict[str, Any] = {}
-    for key, value in (target or {}).items():
-        if value is None:
-            continue
-        mapped = TARGET_KEY_MAP.get(key, key)
-        selector[mapped] = value
-    return selector
+def _normalize_target(target: Any) -> Any:
+    if isinstance(target, dict):
+        selector: Dict[str, Any] = {}
+        for key, value in target.items():
+            if value is None:
+                continue
+            mapped = TARGET_KEY_MAP.get(key, key)
+            selector[mapped] = value
+        return selector
+    if isinstance(target, list):
+        return [_normalize_target(item) for item in target if isinstance(item, (dict, list))]
+    return {}
 
 
 def _normalize_selector(selector: Any) -> Any:
-    if isinstance(selector, dict):
-        return _normalize_target(selector)
-    if isinstance(selector, list):
-        return [_normalize_selector(item) for item in selector if isinstance(item, (dict, list))]
-    return {}
+    return _normalize_target(selector)
 
 
 def normalize_step(step: Dict[str, Any]) -> Dict[str, Any]:

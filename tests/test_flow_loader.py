@@ -42,3 +42,18 @@ def test_normalize_step_with_selector_candidates():
     assert normalized["action"] == "tap"
     assert normalized["selector"][0]["containsText"] == "Pagar"
     assert normalized["selector"][1]["resourceId"] == "br.com.intermedium:id/123"
+
+
+def test_normalize_step_with_target_candidates():
+    step = {
+        "action": "click",
+        "target": [
+            {"texto_contem": "Pagar"},
+            {"resource_id": "br.com.intermedium:id/123"},
+        ],
+    }
+    normalized = normalize_step(step)
+
+    assert normalized["action"] == "tap"
+    assert normalized["selector"][0]["containsText"] == "Pagar"
+    assert normalized["selector"][1]["resourceId"] == "br.com.intermedium:id/123"
