@@ -170,7 +170,20 @@ class FlowRunner:
             self.device.app_start(package)
             return {"launched": package}
         if action == "extract":
-            element = self.element_finder.find(selector, timeout=timeout)
+            try:
+                element = self.element_finder.find(selector, timeout=timeout)
+            except Exception:
+                # fallback: try find_all and pick the first element
+                elements = []
+                try:
+                    elements = self.element_finder.find_all(selector, timeout=timeout)
+                except Exception:
+                    elements = []
+                if elements:
+                    element = elements[0]
+                else:
+                    raise
+
             text_value = self._extract_text(element)
             save_as = step.get("save_as")
             if save_as:
