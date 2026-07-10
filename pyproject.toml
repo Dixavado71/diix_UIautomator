@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "diix-ui-automator"
+version = "0.1.0"
+description = "Framework modularizado Python para automação Android via ADB e UIAutomator2."
+authors = [
+  { name = "Dixavado71" }
+]
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent"
+]
+
+dependencies = [
+  "uiautomator2"
+]
+
+[project.urls]
+Home = "https://github.com/Dixavado71/diix_UIautomator"
+
+[project.scripts]
+diix-ui-automator = "ui_automator.cli:main"

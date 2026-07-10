@@ -1,0 +1,62 @@
+{
+  "package": "br.com.intermedium",
+  "variables": {
+    "senhas": ["senha_inter123"]
+  },
+  "steps": [
+    {
+      "name": "Abrir app Inter",
+      "action": "launch_app",
+      "package": "br.com.intermedium",
+      "timeout": 15
+    },
+    {
+      "name": "Aguardar campo de senha",
+      "action": "wait",
+      "target": {
+        "classe": "android.widget.EditText"
+      },
+      "timeout": 20
+    },
+    {
+      "name": "Digitar senha",
+      "action": "type",
+      "target": {
+        "classe": "android.widget.EditText"
+      },
+      "value": "$senhas.0",
+      "timeout": 10
+    },
+    {
+      "name": "Clicar em Entrar",
+      "action": "click",
+      "target": {
+        "texto_contem": "Entrar"
+      },
+      "timeout": 15,
+      "on_failure": ["delay:2"]
+    },
+    {
+      "name": "Aguardar saldo (R$)",
+      "action": "wait",
+      "target": {
+        "texto_contem": "R$"
+      },
+      "timeout": 20
+    },
+    {
+      "name": "Extrair saldo",
+      "action": "extract",
+      "target": {
+        "texto_contem": "R$"
+      },
+      "save_as": "saldo",
+      "timeout": 10
+    },
+    {
+      "name": "Logar saldo",
+      "action": "log",
+      "mensagem": "💰 Saldo extraído: $saldo"
+    }
+  ]
+}
