@@ -279,6 +279,30 @@
                   "seconds": 1
                 },
                 {
+                  "name": "Verificar tela Continuar Pix",
+                  "action": "if",
+                  "condicao": [
+                    {"texto_contem": ["Continuar Pix", "Continue Pix", "Continue", "Continuar"]}
+                  ],
+                  "timeout": 3,
+                  "then": [
+                    {
+                      "name": "Clicar em Continuar Pix",
+                      "action": "click",
+                      "target": [{"texto_contem": ["Continuar Pix", "Continue Pix", "Continue", "Continuar"]}, {"classe": "android.widget.Button"}],
+                      "timeout": 5,
+                      "retries": 2,
+                      "retry_delay": 0.2
+                    },
+                    {
+                      "name": "Aguardar após Continuar Pix",
+                      "action": "delay",
+                      "seconds": 2
+                    }
+                  ],
+                  "else": []
+                },
+                {
                   "name": "Verificar alerta de fraude",
                   "action": "if",
                   "condicao": [
