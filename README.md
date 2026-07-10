@@ -222,6 +222,45 @@ diix-ui-automator --flow example_pix_flow.json --debug
 
 ### O que o fluxo faz
 
+### Exemplo: usar `wait_any` / `wait_for` + `find_all`
+
+Para lidar com mudanças de tela e múltiplos elementos que podem aparecer em diferentes variantes, você pode usar `wait` (que faz fallback para `find_all`) ou `wait_any` que retorna todos os elementos correspondentes assim que aparecem.
+
+Exemplo prático no fluxo Pix:
+
+```json
+{
+  "name": "Aguardar e pegar botões Pagar",
+  "action": "wait",
+  "selector": {"texto_contem": "Pagar R$"},
+  "timeout": 20
+},
+{
+  "name": "Capturar todos os botões Pagar visíveis",
+  "action": "find_all",
+  "selector": {"texto_contem": "Pagar R$"}
+},
+{
+  "name": "Clicar em todos os botões Pagar",
+  "action": "tap_all",
+  "selector": {"texto_contem": "Pagar R$"}
+}
+```
+
+Ou, para obter diretamente todos os elementos assim que qualquer um aparecer, use `wait_any`:
+
+```json
+{
+  "name": "Aguardar qualquer botão Pagar",
+  "action": "wait_any",
+  "selector": {"texto_contem": "Pagar R$"},
+  "timeout": 20
+}
+```
+
+Esses padrões ajudam quando o app muda a tela ou os elementos aparecem de forma assíncrona: `wait` tentará usar o método nativo `wait` do seletor quando disponível e fará fallback para polling com `find_all` caso contrário.
+
+
 - Abre o app Inter
 - Faz login usando a senha armazenada
 - Navega até a tela de Pix
