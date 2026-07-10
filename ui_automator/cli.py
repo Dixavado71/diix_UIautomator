@@ -18,17 +18,38 @@ def _make_json_safe(value: Any) -> Any:
         return [_make_json_safe(item) for item in value]
     if isinstance(value, dict):
         return {str(key): _make_json_safe(item) for key, item in value.items()}
-    if hasattr(value, "info") and isinstance(value.info, dict):
-        return _make_json_safe(value.info)
-    if hasattr(value, "text"):
-        return _make_json_safe(getattr(value, "text"))
-    if hasattr(value, "to_dict") and callable(value.to_dict):
+
+    try:
+        info = value.info
+    except Exception:
+        info = None
+    if isinstance(info, dict):
+        return _make_json_safe(info)
+
+    try:
+        text = value.text
+    except Exception:
+        text = None
+    if text is not None:
+        return _make_json_safe(text)
+
+    try:
+        to_dict = value.to_dict
+    except Exception:
+        to_dict = None
+    if callable(to_dict):
         try:
-            return _make_json_safe(value.to_dict())
+            return _make_json_safe(to_dict())
         except Exception:
             pass
-    if hasattr(value, "__dict__"):
-        return _make_json_safe(vars(value))
+
+    try:
+        attrs = vars(value)
+    except Exception:
+        attrs = None
+    if isinstance(attrs, dict):
+        return _make_json_safe(attrs)
+
     return str(value)
 
 

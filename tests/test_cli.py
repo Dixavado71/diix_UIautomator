@@ -30,6 +30,16 @@ class DummyFlowRunnerWithNonSerializableResult:
         return [{"step": "dummy", "result": NonSerializableResult()}]
 
 
+class ExplodingInfoObject:
+    @property
+    def info(self):
+        raise RuntimeError("boom")
+
+    @property
+    def text(self):
+        return "ok"
+
+
 class DummyConnector:
     def __init__(self, serial=None, host=None, port=None):
         self.serial = serial
@@ -68,3 +78,25 @@ def test_cli_serializes_non_json_results(monkeypatch, tmp_path):
 
     payload = json.loads(result_path.read_text(encoding="utf-8"))
     assert payload[0]["result"]["name"] == "widget"
+
+
+def test_cli_safe_conversion_handles_objects_with_broken_info(monkeypatch, tmp_path):
+    flow_path = tmp_path / "example.json"
+    flow_path.write_text(json.dumps({"steps": []}), encoding="utf-8")
+    result_path = tmp_path / "nested" / "out.result.json"
+
+    class BrokenInfoRunner:
+        def __init__(self, device):
+            self.device = device
+
+        def run_flow(self, flow):
+            return [{"step": "dummy", "result": ExplodingInfoObject()}]
+
+    monkeypatch.setattr(cli, "AdbDeviceConnector", DummyConnector)
+    monkeypatch.setattr(cli, "FlowRunner", BrokenInfoRunner)
+    monkeypatch.setattr(sys, "argv", ["ui_automator.cli", "--flow", str(flow_path), "--result", str(result_path), "--debug"])
+
+    cli.main()
+
+    payload = json.loads(result_path.read_text(encoding="utf-8"))
+    assert payload[0]["result"] == "ok"
