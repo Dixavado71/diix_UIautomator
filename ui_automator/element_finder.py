@@ -84,17 +84,22 @@ class ElementFinder:
                 continue
             logger.debug("Finding element with selector %s", normalized)
 
+            fallback = None
+            try:
+                fallback = self._fallback_selector(normalized)
+            except AttributeError:
+                fallback = None
+
+            if fallback and self._wait_for_element(lambda sel: self._fallback_selector(normalized), normalized, timeout=max(1, timeout // 2)):
+                logger.info("Found element by fallback selector %s", normalized)
+                return fallback
+
             exact_keys = {k: normalized[k] for k in normalized if k in {"resourceId", "className", "text", "description"}}
             if exact_keys:
                 if self._wait_for_element(lambda sel: self.device(**exact_keys), normalized, timeout=timeout):
                     ui_obj = self.device(**exact_keys)
                     logger.info("Found element by exact selector %s", exact_keys)
                     return ui_obj
-
-            fallback = self._fallback_selector(normalized)
-            if fallback and self._wait_for_element(lambda sel: self._fallback_selector(normalized), normalized, timeout=timeout):
-                logger.info("Found element by fallback selector %s", normalized)
-                return fallback
 
         raise RuntimeError(f"Element not found for selector: {selector}")
 
