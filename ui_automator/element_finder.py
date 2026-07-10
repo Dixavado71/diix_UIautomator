@@ -16,6 +16,26 @@ class ElementFinder:
             return f'"{value}"'
         return f"'{value}'"
 
+    def _build_text_conditions(self, selector: Dict[str, Any]) -> list[str]:
+        conditions = []
+        for key in ("containsText", "containsDescription", "text", "description"):
+            if key not in selector:
+                continue
+            values = selector[key] if isinstance(selector[key], list) else [selector[key]]
+            for value in values:
+                if not isinstance(value, str) or not value:
+                    continue
+                escaped = self._escape_value(value)
+                if key == "containsText":
+                    conditions.append(f"contains(@text, {escaped}) or contains(@content-desc, {escaped})")
+                elif key == "containsDescription":
+                    conditions.append(f"contains(@content-desc, {escaped}) or contains(@text, {escaped})")
+                elif key == "text":
+                    conditions.append(f"@text={escaped} or @content-desc={escaped}")
+                elif key == "description":
+                    conditions.append(f"@content-desc={escaped} or @text={escaped}")
+        return conditions
+
     def _element_exists(self, element, timeout: int = 10) -> bool:
         exists_attr = getattr(element, "exists", None)
         if callable(exists_attr):
@@ -107,19 +127,7 @@ class ElementFinder:
         if "className" in selector and ("containsText" not in selector and "containsDescription" not in selector):
             return self.device.xpath(f"//{selector['className']}")
 
-        conditions = []
-        if "containsText" in selector:
-            value = self._escape_value(selector["containsText"])
-            conditions.append(f"contains(@text, {value}) or contains(@content-desc, {value})")
-        if "containsDescription" in selector:
-            value = self._escape_value(selector["containsDescription"])
-            conditions.append(f"contains(@content-desc, {value}) or contains(@text, {value})")
-        if "text" in selector:
-            value = self._escape_value(selector["text"])
-            conditions.append(f"@text={value} or @content-desc={value}")
-        if "description" in selector:
-            value = self._escape_value(selector["description"])
-            conditions.append(f"@content-desc={value} or @text={value}")
+        conditions = self._build_text_conditions(selector)
 
         if not conditions:
             return None
