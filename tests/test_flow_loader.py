@@ -27,3 +27,18 @@ def test_normalize_step_with_selector_aliases():
 
     assert normalized["action"] == "wait_for"
     assert normalized["selector"]["containsText"] == "Entrar"
+
+
+def test_normalize_step_with_selector_candidates():
+    step = {
+        "action": "click",
+        "selector": [
+            {"texto_contem": "Pagar"},
+            {"resource_id": "br.com.intermedium:id/123"},
+        ],
+    }
+    normalized = normalize_step(step)
+
+    assert normalized["action"] == "tap"
+    assert normalized["selector"][0]["containsText"] == "Pagar"
+    assert normalized["selector"][1]["resourceId"] == "br.com.intermedium:id/123"

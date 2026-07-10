@@ -36,3 +36,19 @@ def test_find_waits_for_transient_element():
     assert element is not None
     assert element.wait_calls >= 2
     assert element.exists is True
+
+
+def test_find_tries_next_selector_candidate():
+    class CandidateDevice:
+        def __init__(self):
+            self.element = DummyElement()
+
+        def __call__(self, **kwargs):
+            if kwargs.get("text") == "ready":
+                return self.element
+            raise RuntimeError("not found")
+
+    finder = ElementFinder(CandidateDevice())
+    element = finder.find([{"resourceId": "missing-id"}, {"text": "ready"}], timeout=1)
+
+    assert element is not None
