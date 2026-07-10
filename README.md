@@ -154,3 +154,80 @@ Para executar testes com `pytest`:
 pip install -r requirements-dev.txt
 pytest
 ```
+
+## Publicação do pacote
+
+O projeto está configurado como pacote Python via `pyproject.toml`. Para publicar uma nova versão no PyPI:
+
+1. Gere os artefatos de distribuição:
+
+```bash
+python -m pip install --upgrade build twine
+python -m build
+```
+
+2. Faça upload para o PyPI ou Test PyPI:
+
+```bash
+python -m twine upload dist/*
+```
+
+Se você quiser criar um novo release no GitHub, use o GitHub CLI:
+
+```bash
+gh release create v0.1.1 --title "v0.1.1" --notes "Atualizações do framework e novo fluxo Pix"
+```
+
+## Uso do fluxo Pix
+
+O exemplo `example_pix_flow.json` mostra um fluxo completo para o app Inter com validação de chaves Pix.
+
+### Passo a passo básico
+
+1. Crie um ambiente virtual e instale o pacote:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+2. Prepare um arquivo de chaves Pix chamado `chaves_pix.txt` no mesmo diretório do fluxo. Cada linha desse arquivo deve conter uma chave Pix válida:
+
+```text
+chave1@example.com
+chave2@example.com
+```
+
+3. Execute o fluxo Pix:
+
+```bash
+python -m ui_automator.cli --flow example_pix_flow.json --debug
+```
+
+ou
+
+```bash
+diix-ui-automator --flow example_pix_flow.json --debug
+```
+
+### Variáveis usadas no fluxo Pix
+
+- `senhas`: lista de senhas para autenticar no app Inter
+- `chaves_pix_file`: caminho para o arquivo de chaves Pix
+- `saldo`: saldo extraído da conta Inter
+- `valor_pagar`: valor identificado para pagamento Pix
+- `erro_msg`: mensagem de erro capturada quando a chave é inválida
+
+### O que o fluxo faz
+
+- Abre o app Inter
+- Faz login usando a senha armazenada
+- Navega até a tela de Pix
+- Itera sobre todas as chaves no arquivo `chaves_pix.txt`
+- Tenta enviar um Pix para cada chave
+- Registra sucesso ou falha para cada tentativa
+
+### Resultado
+
+O fluxo salva resultados em um arquivo `.result.json` ao terminar. Use o modo `--debug` para ver logs detalhados no console.
