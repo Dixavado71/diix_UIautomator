@@ -339,6 +339,27 @@
                   "retry_delay": 0.2
                 },
                 {
+                  "name": "Tratar tela com elemento Agora",
+                  "action": "if",
+                  "condicao": [
+                    {"texto_contem": ["Agora", "Now", "Jetzt"]}
+                  ],
+                  "timeout": 3,
+                  "then": [
+                    {
+                      "name": "Ignorar elemento Agora",
+                      "action": "log",
+                      "message": "🟡 Tela com elemento 'Agora' detectada; ignorando."
+                    },
+                    {
+                      "name": "Aguardar estabilização da tela",
+                      "action": "delay",
+                      "seconds": 1
+                    }
+                  ],
+                  "else": []
+                },
+                {
                   "name": "Logar Pix enviado",
                   "action": "log",
                   "message": "🎉 Pix enviado! ($chave) — $valor_pagar"
