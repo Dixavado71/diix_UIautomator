@@ -138,3 +138,55 @@ def test_flow_runner_return_in_loop(patch_components):
     assert len(result) == 1
     assert result[0]["result"] == "return"
     assert result[0]["value"] == "Found first"
+
+
+def test_element_finder_handles_exists_as_property(monkeypatch):
+    from ui_automator import action_runner
+
+    class DummyPropElement:
+        def __init__(self, text="R$ 100"):
+            self.text = text
+
+        @property
+        def exists(self):
+            return True
+
+        def click(self):
+            return True
+
+        def set_text(self, text):
+            self.text = text
+            return True
+
+        @property
+        def info(self):
+            return {"text": self.text}
+
+    class DummyPropFinder:
+        def __init__(self, element):
+            self.element = element
+
+        def wait_for(self, selector, timeout=0):
+            return self.element
+
+        def find(self, selector, timeout=0):
+            return self.element
+
+        def find_all(self, selector, timeout=0):
+            return [self.element]
+
+        def exists(self, selector, timeout=0):
+            return True
+
+    monkeypatch.setattr(action_runner, "ElementFinder", lambda device: DummyPropFinder(DummyPropElement()))
+    monkeypatch.setattr(action_runner, "DumpManager", lambda device: DummyDumpManager())
+
+    device = DummyDevice()
+    runner = FlowRunner(device)
+    result = runner.run_flow({
+        "steps": [
+            {"action": "wait", "selector": {"text": "R$ 100"}}
+        ],
+    })
+
+    assert result[0]["result"].text == "R$ 100"

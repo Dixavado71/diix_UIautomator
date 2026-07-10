@@ -15,6 +15,15 @@ class ElementFinder:
             return f'"{value}"'
         return f"'{value}'"
 
+    def _element_exists(self, element, timeout: int = 10) -> bool:
+        exists_attr = getattr(element, "exists", None)
+        if callable(exists_attr):
+            try:
+                return exists_attr(timeout=timeout)
+            except TypeError:
+                return bool(exists_attr)
+        return bool(exists_attr)
+
     def find(self, selector: Dict[str, Any], timeout: int = 10):
         """Find an element using a selector dictionary with dynamic fallback."""
         if not selector:
@@ -26,12 +35,12 @@ class ElementFinder:
         exact_keys = {k: selector[k] for k in selector if k in {"resourceId", "className", "text", "description"}}
         if exact_keys:
             ui_obj = self.device(**exact_keys)
-            if ui_obj.exists(timeout=timeout):
+            if self._element_exists(ui_obj, timeout=timeout):
                 logger.info("Found element by exact selector %s", exact_keys)
                 return ui_obj
 
         fallback = self._fallback_selector(selector)
-        if fallback and fallback.exists(timeout=timeout):
+        if fallback and self._element_exists(fallback, timeout=timeout):
             logger.info("Found element by fallback selector %s", selector)
             return fallback
 
@@ -84,7 +93,7 @@ class ElementFinder:
             try:
                 return ui_obj.all()
             except AttributeError:
-                if ui_obj.exists(timeout=timeout):
+                if self._element_exists(ui_obj, timeout=timeout):
                     return [ui_obj]
 
         fallback = self._fallback_selector(selector)
@@ -92,7 +101,7 @@ class ElementFinder:
             try:
                 return fallback.all()
             except AttributeError:
-                if fallback.exists(timeout=timeout):
+                if self._element_exists(fallback, timeout=timeout):
                     return [fallback]
 
         raise RuntimeError(f"Elements not found for selector: {selector}")
