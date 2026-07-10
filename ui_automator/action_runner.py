@@ -306,7 +306,22 @@ class FlowRunner:
         wait_identifier = launch.get("wait_identifier")
         timeout = launch.get("timeout", 10)
         if wait_identifier:
-            self.element_finder.wait_for({"containsText": wait_identifier}, timeout=timeout)
+            # wait_identifier can be a string (search by containsText) or a selector dict
+            if isinstance(wait_identifier, dict):
+                self.element_finder.wait_for(wait_identifier, timeout=timeout)
+            else:
+                self.element_finder.wait_for({"containsText": wait_identifier}, timeout=timeout)
+            return
+
+        # If no explicit wait identifier, try to find a first 'wait' step in the flow
+        # stored in the flow_path context: the caller should supply steps via flow
+        # We try to be forgiving: check context for a reserved key `_first_wait_step_selector`
+        first_wait = None
+        if isinstance(self.context.get("_first_wait_step_selector"), dict):
+            first_wait = self.context.get("_first_wait_step_selector")
+
+        if first_wait:
+            self.element_finder.wait_for(first_wait, timeout=timeout)
 
     def run_flow(self, flow: Dict[str, Any]) -> List[Dict[str, Any]]:
         self.context = flow.get("variables", {}).copy() if isinstance(flow.get("variables"), dict) else {}
@@ -315,6 +330,18 @@ class FlowRunner:
         self._load_file_variables(flow)
 
         launch = flow.get("launch")
+        # precompute first wait selector from flow steps to assist launch waiting
+        try:
+            steps = get_steps(flow)
+            for s in steps:
+                if s.get("action") in ("wait", "wait_for"):
+                    # store resolved selector in context for _run_launch
+                    sel = s.get("selector") or s.get("target") or {}
+                    self.context["_first_wait_step_selector"] = sel
+                    break
+        except Exception:
+            pass
+
         if launch:
             self._run_launch(launch)
         elif self.flow_package and not any(step.get("action") == "launch_app" for step in get_steps(flow)):

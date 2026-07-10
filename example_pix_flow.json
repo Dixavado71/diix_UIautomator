@@ -5,8 +5,8 @@
     "chaves_pix_file": "chaves_pix.txt"
   },
   "launch": {
-    "wait_identifier": "Esqueci minha senha",
-    "timeout": 10
+    "wait_identifier": {"className": "android.widget.EditText"},
+    "timeout": 15
   },
   "steps": [
     {
