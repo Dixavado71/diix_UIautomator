@@ -2,12 +2,34 @@ import argparse
 import json
 import logging
 from pathlib import Path
+from typing import Any
 
 from .adb_client import AdbDeviceConnector
 from .flow_loader import load_flow
 from .action_runner import FlowRunner
 
 logger = logging.getLogger(__name__)
+
+
+def _make_json_safe(value: Any) -> Any:
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, (list, tuple)):
+        return [_make_json_safe(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _make_json_safe(item) for key, item in value.items()}
+    if hasattr(value, "info") and isinstance(value.info, dict):
+        return _make_json_safe(value.info)
+    if hasattr(value, "text"):
+        return _make_json_safe(getattr(value, "text"))
+    if hasattr(value, "to_dict") and callable(value.to_dict):
+        try:
+            return _make_json_safe(value.to_dict())
+        except Exception:
+            pass
+    if hasattr(value, "__dict__"):
+        return _make_json_safe(vars(value))
+    return str(value)
 
 
 def main():
@@ -44,8 +66,9 @@ def main():
 
     output_path = Path(args.result) if args.result else Path(args.flow).with_suffix(".result.json")
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = _make_json_safe(results)
     with output_path.open("w", encoding="utf-8") as handle:
-        json.dump(results, handle, indent=2, ensure_ascii=False)
+        json.dump(payload, handle, indent=2, ensure_ascii=False)
 
     logger.info("Flow execution finished. Results saved to %s", output_path)
 

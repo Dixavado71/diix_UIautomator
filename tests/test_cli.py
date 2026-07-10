@@ -17,6 +17,19 @@ class DummyFlowRunner:
         return [{"step": "dummy", "result": "ok"}]
 
 
+class NonSerializableResult:
+    def __init__(self):
+        self.name = "widget"
+
+
+class DummyFlowRunnerWithNonSerializableResult:
+    def __init__(self, device):
+        self.device = device
+
+    def run_flow(self, flow):
+        return [{"step": "dummy", "result": NonSerializableResult()}]
+
+
 class DummyConnector:
     def __init__(self, serial=None, host=None, port=None):
         self.serial = serial
@@ -40,3 +53,18 @@ def test_cli_writes_result_file(monkeypatch, tmp_path):
 
     assert result_path.exists()
     assert json.loads(result_path.read_text(encoding="utf-8")) == [{"step": "dummy", "result": "ok"}]
+
+
+def test_cli_serializes_non_json_results(monkeypatch, tmp_path):
+    flow_path = tmp_path / "example.json"
+    flow_path.write_text(json.dumps({"steps": []}), encoding="utf-8")
+    result_path = tmp_path / "nested" / "out.result.json"
+
+    monkeypatch.setattr(cli, "AdbDeviceConnector", DummyConnector)
+    monkeypatch.setattr(cli, "FlowRunner", DummyFlowRunnerWithNonSerializableResult)
+    monkeypatch.setattr(sys, "argv", ["ui_automator.cli", "--flow", str(flow_path), "--result", str(result_path), "--debug"])
+
+    cli.main()
+
+    payload = json.loads(result_path.read_text(encoding="utf-8"))
+    assert payload[0]["result"]["name"] == "widget"
