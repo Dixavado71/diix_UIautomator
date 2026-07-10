@@ -97,6 +97,8 @@ def normalize_step(step: Dict[str, Any]) -> Dict[str, Any]:
         "then": step.get("then", []),
         "else": step.get("else", []),
         "seconds": step.get("seconds"),
+        "retries": step.get("retries", 0),
+        "retry_delay": step.get("retry_delay", 0.2),
     }
     return normalized
 

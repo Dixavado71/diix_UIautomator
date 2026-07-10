@@ -13,34 +13,47 @@
       "name": "Aguardar campo de senha",
       "action": "wait",
       "target": {"classe": "android.widget.EditText"},
-      "timeout": 20
+      "timeout": 10,
+      "retries": 2,
+      "retry_delay": 0.2
     },
     {
       "name": "Digitar senha",
       "action": "type",
       "target": {"classe": "android.widget.EditText"},
       "value": "$senhas.0",
-      "timeout": 10
+      "timeout": 8,
+      "retries": 2,
+      "retry_delay": 0.2
     },
     {
       "name": "Clicar em Entrar",
       "action": "click",
-      "target": {"texto_contem": "Entrar"},
-      "timeout": 15,
-      "on_failure": ["delay:2"]
+      "target": [
+        {"texto_contem": "Entrar"},
+        {"classe": "android.widget.Button"}
+      ],
+      "timeout": 8,
+      "retries": 2,
+      "retry_delay": 0.2,
+      "on_failure": ["delay:1"]
     },
     {
       "name": "Aguardar saldo (R$)",
       "action": "wait",
-      "target": {"texto_contem": "R$"},
-      "timeout": 30
+      "target": [{"texto_contem": "R$"}, {"classe": "android.widget.TextView"}],
+      "timeout": 10,
+      "retries": 2,
+      "retry_delay": 0.2
     },
     {
       "name": "Extrair saldo",
       "action": "extract",
-      "target": {"resource_id": "br.com.intermedium:id/2131439999", "texto_contem": "R$"},
+      "target": [{"texto_contem": "R$"}, {"classe": "android.widget.TextView"}],
       "save_as": "saldo",
-      "timeout": 10
+      "timeout": 5,
+      "retries": 2,
+      "retry_delay": 0.2
     },
     {
       "name": "Logar saldo",
@@ -50,26 +63,34 @@
     {
       "name": "Clicar em Pix",
       "action": "click",
-      "target": {"texto_contem": "Pix"},
-      "timeout": 15
+      "target": [{"texto_contem": "Pix"}, {"classe": "android.widget.Button"}],
+      "timeout": 8,
+      "retries": 2,
+      "retry_delay": 0.2
     },
     {
       "name": "Aguardar tela Pagar",
       "action": "wait",
-      "target": {"texto_contem": "Pagar"},
-      "timeout": 15
+      "target": [{"texto_contem": "Pagar"}, {"classe": "android.widget.TextView"}],
+      "timeout": 8,
+      "retries": 2,
+      "retry_delay": 0.2
     },
     {
       "name": "Clicar em Pagar",
       "action": "click",
-      "target": {"resource_id": "br.com.intermedium:id/2131435528"},
-      "timeout": 10
+      "target": [{"texto_contem": "Pagar"}, {"classe": "android.widget.Button"}],
+      "timeout": 6,
+      "retries": 2,
+      "retry_delay": 0.2
     },
     {
       "name": "Aguardar campo de chave Pix",
       "action": "wait",
       "target": {"classe": "android.widget.EditText"},
-      "timeout": 15
+      "timeout": 8,
+      "retries": 2,
+      "retry_delay": 0.2
     },
     {
       "name": "Loop: validar chaves Pix",
@@ -106,19 +127,23 @@
             {
               "name": "Aguardar botão Continuar",
               "action": "wait",
-              "target": {"resource_id": "br.com.intermedium:id/2131429391"},
-              "timeout": 10
+              "target": [{"texto_contem": "Continuar"}, {"classe": "android.widget.Button"}],
+              "timeout": 6,
+              "retries": 2,
+              "retry_delay": 0.2
             },
             {
               "name": "Clicar em Continuar",
               "action": "click",
-              "target": {"resource_id": "br.com.intermedium:id/2131429391"},
-              "timeout": 5
+              "target": [{"texto_contem": "Continuar"}, {"classe": "android.widget.Button"}],
+              "timeout": 4,
+              "retries": 2,
+              "retry_delay": 0.2
             },
             {
               "name": "Aguardar próxima tela",
               "action": "delay",
-              "seconds": 2
+              "seconds": 1
             },
             {
               "name": "Verificar mensagem de erro",
@@ -159,16 +184,20 @@
                 {
                   "name": "Aguardar botão Pagar R$",
                   "action": "wait",
-                  "target": {"texto_contem": "Pagar R$"},
-                  "timeout": 15,
-                  "on_failure": ["press_back", "delay:2"]
+                  "target": [{"texto_contem": "Pagar R$"}, {"classe": "android.widget.Button"}],
+                  "timeout": 8,
+                  "retries": 2,
+                  "retry_delay": 0.2,
+                  "on_failure": ["press_back", "delay:1"]
                 },
                 {
                   "name": "Extrair valor do pagamento",
                   "action": "extract",
-                  "target": {"texto_contem": "Pagar R$"},
+                  "target": [{"texto_contem": "Pagar R$"}, {"classe": "android.widget.Button"}],
                   "save_as": "valor_pagar",
-                  "timeout": 5
+                  "timeout": 4,
+                  "retries": 2,
+                  "retry_delay": 0.2
                 },
                 {
                   "name": "Logar valor encontrado",
@@ -178,13 +207,15 @@
                 {
                   "name": "Clicar em Pagar",
                   "action": "click",
-                  "target": {"texto_contem": "Pagar R$"},
-                  "timeout": 10
+                  "target": [{"texto_contem": "Pagar R$"}, {"classe": "android.widget.Button"}],
+                  "timeout": 5,
+                  "retries": 2,
+                  "retry_delay": 0.2
                 },
                 {
                   "name": "Aguardar tela de confirmação",
                   "action": "delay",
-                  "seconds": 3
+                  "seconds": 1
                 },
                 {
                   "name": "Verificar alerta de fraude",
@@ -214,25 +245,31 @@
                 {
                   "name": "Aguardar botão CONFIRMAR",
                   "action": "wait",
-                  "target": {"texto_contem": "CONFIRMAR"},
-                  "timeout": 15
+                  "target": [{"texto_contem": "CONFIRMAR"}, {"classe": "android.widget.Button"}],
+                  "timeout": 8,
+                  "retries": 2,
+                  "retry_delay": 0.2
                 },
                 {
                   "name": "Clicar em CONFIRMAR",
                   "action": "click",
-                  "target": {"resource_id": "br.com.intermedium:id/2131432730"},
-                  "timeout": 10
+                  "target": [{"texto_contem": "CONFIRMAR"}, {"classe": "android.widget.Button"}],
+                  "timeout": 5,
+                  "retries": 2,
+                  "retry_delay": 0.2
                 },
                 {
                   "name": "Aguardar processamento",
                   "action": "delay",
-                  "seconds": 5
+                  "seconds": 2
                 },
                 {
                   "name": "Aguardar Pix enviado com sucesso",
                   "action": "wait",
-                  "target": {"texto_contem": "Pix enviado"},
-                  "timeout": 20
+                  "target": [{"texto_contem": "Pix enviado"}, {"classe": "android.widget.TextView"}],
+                  "timeout": 10,
+                  "retries": 2,
+                  "retry_delay": 0.2
                 },
                 {
                   "name": "Logar Pix enviado",
@@ -242,20 +279,26 @@
                 {
                   "name": "Aguardar botão Realizar novo pix",
                   "action": "wait",
-                  "target": {"resource_id": "br.com.intermedium:id/2131432730"},
-                  "timeout": 15
+                  "target": [{"texto_contem": "Realizar novo pix"}, {"classe": "android.widget.Button"}],
+                  "timeout": 8,
+                  "retries": 2,
+                  "retry_delay": 0.2
                 },
                 {
                   "name": "Clicar em Realizar novo pix",
                   "action": "click",
-                  "target": {"resource_id": "br.com.intermedium:id/2131432730"},
-                  "timeout": 10
+                  "target": [{"texto_contem": "Realizar novo pix"}, {"classe": "android.widget.Button"}],
+                  "timeout": 5,
+                  "retries": 2,
+                  "retry_delay": 0.2
                 },
                 {
                   "name": "Aguardar tela de chave",
                   "action": "wait",
                   "target": {"classe": "android.widget.EditText"},
-                  "timeout": 15
+                  "timeout": 8,
+                  "retries": 2,
+                  "retry_delay": 0.2
                 },
                 {
                   "name": "Aguardar carregamento do campo",

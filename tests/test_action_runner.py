@@ -140,6 +140,42 @@ def test_flow_runner_return_in_loop(patch_components):
     assert result[0]["value"] == "Found first"
 
 
+def test_flow_runner_retries_failed_step(monkeypatch):
+    from ui_automator import action_runner
+
+    class FlakyFinder:
+        def __init__(self, element):
+            self.element = element
+            self.calls = 0
+
+        def wait_for(self, selector, timeout=0):
+            return self.element
+
+        def find(self, selector, timeout=0):
+            self.calls += 1
+            if self.calls < 2:
+                raise RuntimeError("temporary failure")
+            return self.element
+
+        def find_all(self, selector, timeout=0):
+            return [self.element]
+
+        def exists(self, selector, timeout=0):
+            return True
+
+    monkeypatch.setattr(action_runner, "ElementFinder", lambda device: FlakyFinder(DummyElement()))
+    monkeypatch.setattr(action_runner, "DumpManager", lambda device: DummyDumpManager())
+
+    runner = FlowRunner(DummyDevice())
+    result = runner.run_flow({
+        "steps": [
+            {"action": "tap", "selector": {"text": "retry"}, "retries": 2, "retry_delay": 0.01}
+        ],
+    })
+
+    assert result[0]["result"] is not None
+
+
 def test_element_finder_handles_exists_as_property(monkeypatch):
     from ui_automator import action_runner
 

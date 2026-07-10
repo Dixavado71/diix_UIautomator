@@ -131,89 +131,103 @@ class FlowRunner:
         selector = step.get("selector", {})
         value = step.get("value")
         timeout = step.get("timeout", 15)
+        retries = int(step.get("retries", 0) or 0)
+        retry_delay = float(step.get("retry_delay", 0.2) or 0.2)
 
         logger.info("Performing action: %s", action)
-        if action == "wait_for":
-            try:
-                return self.element_finder.wait_for(selector, timeout=timeout)
-            except Exception:
-                # fallback: poll for any matching elements and return first
-                elements = self._poll_find_all(selector, timeout=timeout)
-                if elements:
-                    return elements[0]
-                raise
-        if action == "tap":
-            element = self.element_finder.find(selector, timeout=timeout)
-            element.click()
-            return element
-        if action == "set_text":
-            element = self.element_finder.find(selector, timeout=timeout)
-            element.set_text(value or "")
-            return element
-        if action == "dump":
-            return self.dump_manager.refresh_dump()
-        if action == "press_back":
-            self.device.press("back")
-            return None
-        if action == "sleep":
-            seconds = value if value is not None else step.get("seconds")
-            try:
-                sleep_seconds = float(seconds or 1)
-            except (TypeError, ValueError):
-                sleep_seconds = 1.0
-            time.sleep(sleep_seconds)
-            return None
-        if action == "launch_app":
-            package = step.get("package") or self.flow_package
-            if not package:
-                raise ValueError("No package specified for launch_app action")
-            self.device.app_start(package)
-            return {"launched": package}
-        if action == "extract":
-            try:
-                element = self.element_finder.find(selector, timeout=timeout)
-            except Exception:
-                # fallback: try find_all and pick the first element
-                elements = []
+
+        def _execute_once() -> Any:
+            if action == "wait_for":
                 try:
-                    elements = self.element_finder.find_all(selector, timeout=timeout)
+                    return self.element_finder.wait_for(selector, timeout=timeout)
+                except Exception:
+                    elements = self._poll_find_all(selector, timeout=timeout)
+                    if elements:
+                        return elements[0]
+                    raise
+            if action == "tap":
+                element = self.element_finder.find(selector, timeout=timeout)
+                element.click()
+                return element
+            if action == "set_text":
+                element = self.element_finder.find(selector, timeout=timeout)
+                element.set_text(value or "")
+                return element
+            if action == "dump":
+                return self.dump_manager.refresh_dump()
+            if action == "press_back":
+                self.device.press("back")
+                return None
+            if action == "sleep":
+                seconds = value if value is not None else step.get("seconds")
+                try:
+                    sleep_seconds = float(seconds or 1)
+                except (TypeError, ValueError):
+                    sleep_seconds = 1.0
+                time.sleep(sleep_seconds)
+                return None
+            if action == "launch_app":
+                package = step.get("package") or self.flow_package
+                if not package:
+                    raise ValueError("No package specified for launch_app action")
+                self.device.app_start(package)
+                return {"launched": package}
+            if action == "extract":
+                try:
+                    element = self.element_finder.find(selector, timeout=timeout)
                 except Exception:
                     elements = []
-                if elements:
-                    element = elements[0]
-                else:
+                    try:
+                        elements = self.element_finder.find_all(selector, timeout=timeout)
+                    except Exception:
+                        elements = []
+                    if elements:
+                        element = elements[0]
+                    else:
+                        raise
+
+                text_value = self._extract_text(element)
+                save_as = step.get("save_as")
+                if save_as:
+                    self._store_variable(save_as, text_value)
+                return text_value
+            if action == "find_all":
+                elements = self.element_finder.find_all(selector, timeout=timeout)
+                return elements
+            if action == "wait_for_any":
+                elements = self._poll_find_all(selector, timeout=timeout)
+                return elements
+            if action == "tap_all":
+                elements = self.element_finder.find_all(selector, timeout=timeout)
+                results = []
+                for element in elements:
+                    element.click()
+                    results.append(self._extract_text(element))
+                return results
+            if action == "return":
+                return_value = step.get("value")
+                if return_value is None:
+                    return_value = step.get("message")
+                raise FlowReturn(self._resolve_data(return_value))
+            if action == "log":
+                message = step.get("message") or ""
+                message = self._resolve_text(message)
+                logger.info(message)
+                return message
+
+            raise ValueError(f"Unsupported flow action: {action}")
+
+        attempt = 0
+        while True:
+            try:
+                return _execute_once()
+            except Exception as error:
+                attempt += 1
+                if attempt > retries:
                     raise
-
-            text_value = self._extract_text(element)
-            save_as = step.get("save_as")
-            if save_as:
-                self._store_variable(save_as, text_value)
-            return text_value
-        if action == "find_all":
-            elements = self.element_finder.find_all(selector, timeout=timeout)
-            return elements
-        if action == "wait_for_any":
-            elements = self._poll_find_all(selector, timeout=timeout)
-            return elements
-        if action == "tap_all":
-            elements = self.element_finder.find_all(selector, timeout=timeout)
-            results = []
-            for element in elements:
-                element.click()
-                results.append(self._extract_text(element))
-            return results
-        if action == "return":
-            return_value = step.get("value")
-            if return_value is None:
-                return_value = step.get("message")
-            raise FlowReturn(self._resolve_data(return_value))
-        if action == "log":
-            message = step.get("message") or ""
-            message = self._resolve_text(message)
-            logger.info(message)
-            return message
-
-        raise ValueError(f"Unsupported flow action: {action}")
+                logger.warning("Retrying action '%s' after failure (%s)", action, error)
+                if retry_delay > 0:
+                    time.sleep(retry_delay)
 
     def _poll_find_all(self, selector: Dict[str, Any], timeout: int = 15):
         start = time.time()
