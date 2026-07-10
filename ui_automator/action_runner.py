@@ -121,9 +121,11 @@ class FlowRunner:
                 raise RuntimeError(f"Flow variable file not found: {file_path}")
             self.context[target_key] = [line.strip() for line in raw_text.splitlines() if line.strip()]
 
-    def _condition_met(self, condition: Dict[str, Any], timeout: int = 10) -> bool:
+    def _condition_met(self, condition: Any, timeout: int = 10) -> bool:
         if not condition:
             return False
+        if isinstance(condition, list):
+            return any(self._condition_met(item, timeout=timeout) for item in condition)
         return self.element_finder.exists(condition, timeout=timeout)
 
     def _perform_action(self, step: Dict[str, Any]) -> Any:
