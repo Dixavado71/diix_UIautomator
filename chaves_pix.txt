@@ -1,0 +1,3 @@
+usuario1@example.com
+usuario2@example.com
+00000000000
