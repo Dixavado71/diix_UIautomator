@@ -134,7 +134,14 @@ class FlowRunner:
 
         logger.info("Performing action: %s", action)
         if action == "wait_for":
-            return self.element_finder.wait_for(selector, timeout=timeout)
+            try:
+                return self.element_finder.wait_for(selector, timeout=timeout)
+            except Exception:
+                # fallback: poll for any matching elements and return first
+                elements = self._poll_find_all(selector, timeout=timeout)
+                if elements:
+                    return elements[0]
+                raise
         if action == "tap":
             element = self.element_finder.find(selector, timeout=timeout)
             element.click()
@@ -172,6 +179,9 @@ class FlowRunner:
         if action == "find_all":
             elements = self.element_finder.find_all(selector, timeout=timeout)
             return elements
+        if action == "wait_for_any":
+            elements = self._poll_find_all(selector, timeout=timeout)
+            return elements
         if action == "tap_all":
             elements = self.element_finder.find_all(selector, timeout=timeout)
             results = []
@@ -191,6 +201,19 @@ class FlowRunner:
             return message
 
         raise ValueError(f"Unsupported flow action: {action}")
+
+    def _poll_find_all(self, selector: Dict[str, Any], timeout: int = 15):
+        start = time.time()
+        while True:
+            try:
+                elements = self.element_finder.find_all(selector, timeout=1)
+            except Exception:
+                elements = []
+            if elements:
+                return elements
+            if time.time() - start >= timeout:
+                return []
+            time.sleep(0.5)
 
     def _perform_if(self, step: Dict[str, Any]) -> Dict[str, Any]:
         condition = step.get("condicao") or {}

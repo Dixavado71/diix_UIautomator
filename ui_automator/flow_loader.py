@@ -32,6 +32,7 @@ ACTION_MAP = {
     "dump": "dump",
     "find_all": "find_all",
     "tap_all": "tap_all",
+    "wait_any": "wait_for_any",
     "return": "return",
     "if": "if",
     "loop": "loop",
