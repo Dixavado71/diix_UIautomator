@@ -64,10 +64,16 @@ def _normalize_target(target: Dict[str, Any]) -> Dict[str, Any]:
     return selector
 
 
+def _normalize_selector(selector: Any) -> Dict[str, Any]:
+    if isinstance(selector, dict):
+        return _normalize_target(selector)
+    return {}
+
+
 def normalize_step(step: Dict[str, Any]) -> Dict[str, Any]:
     action = step.get("action")
     normalized_action = ACTION_MAP.get(action, action)
-    selector = step.get("selector") if step.get("selector") else _normalize_target(step.get("target", {}))
+    selector = _normalize_selector(step.get("selector")) if step.get("selector") is not None else _normalize_target(step.get("target", {}))
 
     normalized = {
         "name": step.get("name"),

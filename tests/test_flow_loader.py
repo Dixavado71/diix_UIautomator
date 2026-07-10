@@ -19,3 +19,11 @@ def test_normalize_step_with_target():
 
     assert normalized["action"] == "tap"
     assert normalized["selector"]["containsText"] == "Entrar"
+
+
+def test_normalize_step_with_selector_aliases():
+    step = {"action": "wait", "selector": {"texto_contem": "Entrar"}}
+    normalized = normalize_step(step)
+
+    assert normalized["action"] == "wait_for"
+    assert normalized["selector"]["containsText"] == "Entrar"

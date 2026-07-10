@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,38 @@ class ElementFinder:
                 return bool(exists_attr)
         return bool(exists_attr)
 
+    def _wait_for_element(self, element_factory, selector: Dict[str, Any], timeout: int = 10) -> bool:
+        start = time.time()
+
+        while True:
+            element = element_factory(selector)
+            wait_method = getattr(element, "wait", None)
+            exists_attr = getattr(element, "exists", None)
+
+            if callable(wait_method):
+                try:
+                    result = wait_method(timeout=timeout)
+                    if bool(result):
+                        return True
+                except TypeError:
+                    pass
+
+            if callable(exists_attr):
+                try:
+                    if bool(exists_attr(timeout=timeout)):
+                        return True
+                except TypeError:
+                    if bool(exists_attr):
+                        return True
+
+            elif bool(exists_attr):
+                return True
+
+            if time.time() - start >= timeout:
+                return False
+
+            time.sleep(0.5)
+
     def find(self, selector: Dict[str, Any], timeout: int = 10):
         """Find an element using a selector dictionary with dynamic fallback."""
         if not selector:
@@ -34,13 +67,13 @@ class ElementFinder:
 
         exact_keys = {k: selector[k] for k in selector if k in {"resourceId", "className", "text", "description"}}
         if exact_keys:
-            ui_obj = self.device(**exact_keys)
-            if self._element_exists(ui_obj, timeout=timeout):
+            if self._wait_for_element(lambda sel: self.device(**exact_keys), selector, timeout=timeout):
+                ui_obj = self.device(**exact_keys)
                 logger.info("Found element by exact selector %s", exact_keys)
                 return ui_obj
 
         fallback = self._fallback_selector(selector)
-        if fallback and self._element_exists(fallback, timeout=timeout):
+        if fallback and self._wait_for_element(lambda sel: self._fallback_selector(selector), selector, timeout=timeout):
             logger.info("Found element by fallback selector %s", selector)
             return fallback
 

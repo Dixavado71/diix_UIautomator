@@ -30,7 +30,7 @@ class DummyConnector:
 def test_cli_writes_result_file(monkeypatch, tmp_path):
     flow_path = tmp_path / "example.json"
     flow_path.write_text(json.dumps({"steps": []}), encoding="utf-8")
-    result_path = tmp_path / "out.result.json"
+    result_path = tmp_path / "nested" / "out.result.json"
 
     monkeypatch.setattr(cli, "AdbDeviceConnector", DummyConnector)
     monkeypatch.setattr(cli, "FlowRunner", DummyFlowRunner)

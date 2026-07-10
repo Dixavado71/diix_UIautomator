@@ -43,6 +43,7 @@ def main():
         raise SystemExit(1)
 
     output_path = Path(args.result) if args.result else Path(args.flow).with_suffix(".result.json")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as handle:
         json.dump(results, handle, indent=2, ensure_ascii=False)
 
