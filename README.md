@@ -192,11 +192,12 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-2. Prepare um arquivo de chaves Pix chamado `chaves_pix.txt` no mesmo diretório do fluxo. Cada linha desse arquivo deve conter uma chave Pix válida:
+2. Prepare um arquivo de chaves Pix chamado `chaves_pix.txt` no mesmo diretório do fluxo. Cada linha desse arquivo deve conter uma chave Pix válida. Um exemplo já está disponível no repositório em `chaves_pix.txt`:
 
 ```text
-chave1@example.com
-chave2@example.com
+usuario1@example.com
+usuario2@example.com
+00000000000
 ```
 
 3. Execute o fluxo Pix:
