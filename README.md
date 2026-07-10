@@ -51,7 +51,7 @@ O arquivo de fluxo deve conter um objeto principal com a lista `steps`.
 Cada passo pode ter as chaves:
 
 - `name`: nome descritivo do passo
-- `action`: ação a executar (`launch_app`, `wait`, `click`, `type`, `extract`, `log`, `dump`, `press_back`, `sleep`)
+- `action`: ação a executar (`launch_app`, `wait`, `click`, `type`, `extract`, `log`, `dump`, `press_back`, `sleep`, `find_all`, `tap_all`, `return`, `if`, `loop`)
 - `target`: seletor do elemento a ser encontrado (`classe`, `resourceId`, `texto`, `texto_contem`, `descricao`, `descricao_contem`)
 - `selector`: alternativa ao `target` para usar chaves de UIAutomator2 diretamente (`className`, `resourceId`, `text`, `description`)
 - `value`: valor para digitação ou tempo de espera
@@ -60,6 +60,17 @@ Cada passo pode ter as chaves:
 - `timeout`: tempo máximo de espera em segundos
 - `on_failure`: lista de ações de fallback, como `delay:2` ou `log:falha`
 - `continue_on_failure`: `true` para seguir o fluxo após erro
+- `over`: lista ou variável de lista para `loop`
+- `var_name`: nome da variável de loop para `loop`
+- `then` / `else`: blocos de passos condicionais para `if`
+
+### Novas capacidades do fluxo
+- `find_all`: retorna todos os elementos que correspondem ao seletor
+- `tap_all`: clica em todos os elementos encontrados
+- `return`: encerra o fluxo imediatamente com um valor retornado
+- `if` e `loop`: estruturas condicionais e repetição para fluxos mais inteligentes
+
+O projeto também inclui um exemplo de fluxo Pix em `example_pix_flow.json` para automação de Pix no app Inter.
 
 A seguir está um fluxo de login realista para o app Inter (`br.com.intermedium`):
 

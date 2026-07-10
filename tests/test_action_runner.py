@@ -43,6 +43,12 @@ class DummyFinder:
     def find(self, selector, timeout=0):
         return self.element
 
+    def find_all(self, selector, timeout=0):
+        return [self.element]
+
+    def exists(self, selector, timeout=0):
+        return True
+
 
 class DummyDumpManager:
     def __init__(self):
@@ -88,3 +94,47 @@ def test_flow_runner_extract_and_log(patch_components):
 
     assert result[0]["result"] == "R$ 100"
     assert "Saldo: R$ 100" in result[1]["result"] or result[1]["result"] == "Saldo: R$ 100"
+
+
+def test_flow_runner_find_all_and_tap_all(patch_components):
+    device = DummyDevice()
+    runner = FlowRunner(device)
+    result = runner.run_flow({
+        "steps": [
+            {"action": "find_all", "selector": {"text": "R$ 100"}},
+            {"action": "tap_all", "selector": {"text": "R$ 100"}},
+        ],
+    })
+
+    assert result[0]["result"] == [patch_components]
+    assert result[1]["result"] == ["R$ 100"]
+
+
+def test_flow_runner_return_in_loop(patch_components):
+    device = DummyDevice()
+    runner = FlowRunner(device)
+    result = runner.run_flow({
+        "steps": [
+            {
+                "action": "loop",
+                "over": ["first", "second"],
+                "var_name": "item",
+                "steps": [
+                    {
+                        "action": "if",
+                        "condicao": {"text": "R$ 100"},
+                        "then": [
+                            {"action": "return", "value": "Found $item"}
+                        ],
+                        "else": [
+                            {"action": "log", "message": "Skipped $item"}
+                        ],
+                    }
+                ],
+            }
+        ],
+    })
+
+    assert len(result) == 1
+    assert result[0]["result"] == "return"
+    assert result[0]["value"] == "Found first"

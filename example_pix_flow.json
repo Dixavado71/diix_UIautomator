@@ -1,0 +1,277 @@
+{
+  "package": "br.com.intermedium",
+  "variables": {
+    "senhas": ["101080Ma@"],
+    "chaves_pix_file": "chaves_pix.txt"
+  },
+  "launch": {
+    "wait_identifier": "Esqueci minha senha",
+    "timeout": 10
+  },
+  "steps": [
+    {
+      "name": "Aguardar campo de senha",
+      "action": "wait",
+      "target": {"classe": "android.widget.EditText"},
+      "timeout": 20
+    },
+    {
+      "name": "Digitar senha",
+      "action": "type",
+      "target": {"classe": "android.widget.EditText"},
+      "value": "$senhas.0",
+      "timeout": 10
+    },
+    {
+      "name": "Clicar em Entrar",
+      "action": "click",
+      "target": {"texto_contem": "Entrar"},
+      "timeout": 15,
+      "on_failure": ["delay:2"]
+    },
+    {
+      "name": "Aguardar saldo (R$)",
+      "action": "wait",
+      "target": {"texto_contem": "R$"},
+      "timeout": 20
+    },
+    {
+      "name": "Extrair saldo",
+      "action": "extract",
+      "target": {"texto_contem": "R$"},
+      "save_as": "saldo",
+      "timeout": 10
+    },
+    {
+      "name": "Logar saldo",
+      "action": "log",
+      "message": "💰 Saldo extraído: $saldo"
+    },
+    {
+      "name": "Clicar em Pix",
+      "action": "click",
+      "target": {"texto_contem": "Pix"},
+      "timeout": 15
+    },
+    {
+      "name": "Aguardar tela Pagar",
+      "action": "wait",
+      "target": {"texto_contem": "Pagar"},
+      "timeout": 15
+    },
+    {
+      "name": "Clicar em Pagar",
+      "action": "click",
+      "target": {"resource_id": "br.com.intermedium:id/2131435528"},
+      "timeout": 10
+    },
+    {
+      "name": "Aguardar campo de chave Pix",
+      "action": "wait",
+      "target": {"classe": "android.widget.EditText"},
+      "timeout": 15
+    },
+    {
+      "name": "Loop: validar chaves Pix",
+      "action": "loop",
+      "over": "$chaves_pix",
+      "var_name": "chave",
+      "back_after_each": false,
+      "steps": [
+        {
+          "name": "Verificar se está na tela de chave Pix",
+          "action": "if",
+          "condicao": {"classe": "android.widget.EditText"},
+          "timeout": 10,
+          "then": [
+            {
+              "name": "Limpar campo de chave",
+              "action": "type",
+              "target": {"classe": "android.widget.EditText"},
+              "value": "",
+              "timeout": 5
+            },
+            {
+              "name": "Digitar chave Pix atual",
+              "action": "type",
+              "target": {"classe": "android.widget.EditText"},
+              "value": "$chave",
+              "timeout": 10
+            },
+            {
+              "name": "Aguardar app validar chave",
+              "action": "delay",
+              "seconds": 3
+            },
+            {
+              "name": "Aguardar botão Continuar",
+              "action": "wait",
+              "target": {"resource_id": "br.com.intermedium:id/2131429391"},
+              "timeout": 10
+            },
+            {
+              "name": "Clicar em Continuar",
+              "action": "click",
+              "target": {"resource_id": "br.com.intermedium:id/2131429391"},
+              "timeout": 5
+            },
+            {
+              "name": "Aguardar próxima tela",
+              "action": "delay",
+              "seconds": 2
+            },
+            {
+              "name": "Verificar mensagem de erro",
+              "action": "if",
+              "condicao": {"resource_id": "br.com.intermedium:id/2131439570"},
+              "timeout": 5,
+              "then": [
+                {
+                  "name": "Extrair mensagem de erro",
+                  "action": "extract",
+                  "target": {"resource_id": "br.com.intermedium:id/2131439570"},
+                  "save_as": "erro_msg",
+                  "timeout": 5
+                },
+                {
+                  "name": "Logar erro da chave",
+                  "action": "log",
+                  "message": "❌ Chave inválida: $erro_msg"
+                },
+                {
+                  "name": "Voltar para tela de chave",
+                  "action": "press_back"
+                },
+                {
+                  "name": "Aguardar tela de chave",
+                  "action": "delay",
+                  "seconds": 2
+                },
+                {
+                  "name": "Limpar campo de chave",
+                  "action": "type",
+                  "target": {"classe": "android.widget.EditText"},
+                  "value": "",
+                  "timeout": 5
+                }
+              ],
+              "else": [
+                {
+                  "name": "Aguardar botão Pagar R$",
+                  "action": "wait",
+                  "target": {"texto_contem": "Pagar R$"},
+                  "timeout": 15,
+                  "on_failure": ["press_back", "delay:2"]
+                },
+                {
+                  "name": "Extrair valor do pagamento",
+                  "action": "extract",
+                  "target": {"texto_contem": "Pagar R$"},
+                  "save_as": "valor_pagar",
+                  "timeout": 5
+                },
+                {
+                  "name": "Logar valor encontrado",
+                  "action": "log",
+                  "message": "✅ Chave válida — $valor_pagar"
+                },
+                {
+                  "name": "Clicar em Pagar",
+                  "action": "click",
+                  "target": {"texto_contem": "Pagar R$"},
+                  "timeout": 10
+                },
+                {
+                  "name": "Aguardar tela de confirmação",
+                  "action": "delay",
+                  "seconds": 3
+                },
+                {
+                  "name": "Verificar alerta de fraude",
+                  "action": "if",
+                  "condicao": {"resource_id": "br.com.intermedium:id/2131429356"},
+                  "timeout": 10,
+                  "then": [
+                    {
+                      "name": "Logar alerta de fraude",
+                      "action": "log",
+                      "message": "⚠️ Alerta de fraude — confirmando mesmo assim"
+                    },
+                    {
+                      "name": "Clicar em confirmar mesmo assim",
+                      "action": "click",
+                      "target": {"resource_id": "br.com.intermedium:id/2131429356"},
+                      "timeout": 5
+                    },
+                    {
+                      "name": "Aguardar após alerta",
+                      "action": "delay",
+                      "seconds": 5
+                    }
+                  ],
+                  "else": []
+                },
+                {
+                  "name": "Aguardar botão CONFIRMAR",
+                  "action": "wait",
+                  "target": {"texto_contem": "CONFIRMAR"},
+                  "timeout": 15
+                },
+                {
+                  "name": "Clicar em CONFIRMAR",
+                  "action": "click",
+                  "target": {"resource_id": "br.com.intermedium:id/2131432730"},
+                  "timeout": 10
+                },
+                {
+                  "name": "Aguardar processamento",
+                  "action": "delay",
+                  "seconds": 5
+                },
+                {
+                  "name": "Aguardar Pix enviado com sucesso",
+                  "action": "wait",
+                  "target": {"texto_contem": "Pix enviado"},
+                  "timeout": 20
+                },
+                {
+                  "name": "Logar Pix enviado",
+                  "action": "log",
+                  "message": "🎉 Pix enviado! ($chave) — $valor_pagar"
+                },
+                {
+                  "name": "Aguardar botão Realizar novo pix",
+                  "action": "wait",
+                  "target": {"resource_id": "br.com.intermedium:id/2131432730"},
+                  "timeout": 15
+                },
+                {
+                  "name": "Clicar em Realizar novo pix",
+                  "action": "click",
+                  "target": {"resource_id": "br.com.intermedium:id/2131432730"},
+                  "timeout": 10
+                },
+                {
+                  "name": "Aguardar tela de chave",
+                  "action": "wait",
+                  "target": {"classe": "android.widget.EditText"},
+                  "timeout": 15
+                },
+                {
+                  "name": "Aguardar carregamento do campo",
+                  "action": "delay",
+                  "seconds": 2
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Logar finalizado",
+      "action": "log",
+      "message": "🏁 Fluxo Pix finalizado."
+    }
+  ]
+}

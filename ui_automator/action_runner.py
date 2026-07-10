@@ -1,13 +1,20 @@
 import logging
 import re
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .dump_manager import DumpManager
 from .element_finder import ElementFinder
-from .flow_loader import get_steps
+from .flow_loader import get_steps, normalize_step
 
 logger = logging.getLogger(__name__)
+
+
+class FlowReturn(Exception):
+    def __init__(self, value: Any):
+        super().__init__("Flow returned")
+        self.value = value
 
 
 class FlowRunner:
@@ -17,6 +24,7 @@ class FlowRunner:
         self.element_finder = ElementFinder(device)
         self.context: Dict[str, Any] = {}
         self.flow_package: Optional[str] = None
+        self.flow_path: Optional[Path] = None
 
     def _resolve_variable(self, path: str) -> Any:
         cursor = self.context
@@ -33,6 +41,10 @@ class FlowRunner:
     def _resolve_text(self, value: Any) -> Any:
         if not isinstance(value, str) or '$' not in value:
             return value
+
+        if value.strip().startswith('$') and re.fullmatch(r"\$[a-zA-Z_][\w\.]*", value.strip()):
+            variable = value.strip()[1:]
+            return self._resolve_variable(variable)
 
         def _replace(match: re.Match) -> str:
             replacement = self._resolve_variable(match.group(1))
@@ -88,6 +100,32 @@ class FlowRunner:
                 except ValueError:
                     logger.warning("Invalid sleep value in on_failure: %s", action)
 
+    def _load_file_variables(self, flow: Dict[str, Any]) -> None:
+        if not isinstance(flow.get("variables"), dict):
+            return
+
+        for key, value in list(self.context.items()):
+            if not key.endswith("_file") or not isinstance(value, str):
+                continue
+            target_key = key[: -len("_file")]
+            if not target_key:
+                continue
+            if target_key in self.context and self.context[target_key]:
+                continue
+            file_path = Path(value)
+            if not file_path.is_absolute() and self.flow_path is not None:
+                file_path = self.flow_path.parent / file_path
+            try:
+                raw_text = file_path.read_text(encoding="utf-8")
+            except FileNotFoundError:
+                raise RuntimeError(f"Flow variable file not found: {file_path}")
+            self.context[target_key] = [line.strip() for line in raw_text.splitlines() if line.strip()]
+
+    def _condition_met(self, condition: Dict[str, Any], timeout: int = 10) -> bool:
+        if not condition:
+            return False
+        return self.element_finder.exists(condition, timeout=timeout)
+
     def _perform_action(self, step: Dict[str, Any]) -> Any:
         action = step.get("action")
         selector = step.get("selector", {})
@@ -111,8 +149,9 @@ class FlowRunner:
             self.device.press("back")
             return None
         if action == "sleep":
+            seconds = value if value is not None else step.get("seconds")
             try:
-                sleep_seconds = float(value or 1)
+                sleep_seconds = float(seconds or 1)
             except (TypeError, ValueError):
                 sleep_seconds = 1.0
             time.sleep(sleep_seconds)
@@ -130,6 +169,21 @@ class FlowRunner:
             if save_as:
                 self._store_variable(save_as, text_value)
             return text_value
+        if action == "find_all":
+            elements = self.element_finder.find_all(selector, timeout=timeout)
+            return elements
+        if action == "tap_all":
+            elements = self.element_finder.find_all(selector, timeout=timeout)
+            results = []
+            for element in elements:
+                element.click()
+                results.append(self._extract_text(element))
+            return results
+        if action == "return":
+            return_value = step.get("value")
+            if return_value is None:
+                return_value = step.get("message")
+            raise FlowReturn(self._resolve_data(return_value))
         if action == "log":
             message = step.get("message") or ""
             message = self._resolve_text(message)
@@ -138,21 +192,80 @@ class FlowRunner:
 
         raise ValueError(f"Unsupported flow action: {action}")
 
-    def run_flow(self, flow: Dict[str, Any]) -> List[Dict[str, Any]]:
-        self.context = flow.get("variables", {}).copy() if isinstance(flow.get("variables"), dict) else {}
-        self.flow_package = flow.get("package")
-        steps = get_steps(flow)
-        if self.flow_package and not any(step.get("action") == "launch_app" for step in steps):
-            logger.info("Launching flow package: %s", self.flow_package)
-            self.device.app_start(self.flow_package)
+    def _perform_if(self, step: Dict[str, Any]) -> Dict[str, Any]:
+        condition = step.get("condicao") or {}
+        timeout = step.get("timeout", 10)
+        matched = self._condition_met(condition, timeout=timeout)
+        branch = step.get("then") if matched else step.get("else")
 
+        result = {
+            "matched": matched,
+            "steps": self._execute_steps(branch or [], catch_return=False),
+        }
+        return result
+
+    def _perform_loop(self, step: Dict[str, Any]) -> Dict[str, Any]:
+        over = step.get("over")
+        if isinstance(over, str):
+            over = self._resolve_text(over)
+
+        if not isinstance(over, list):
+            raise ValueError("Loop action requires 'over' to be a list or a variable reference to a list")
+
+        var_name = step.get("var_name") or "item"
+        back_after_each = step.get("back_after_each", False)
+        iterations = []
+        previous_value = self.context.get(var_name, None)
+
+        try:
+            for item in over:
+                self.context[var_name] = item
+                iteration_result = self._execute_steps(step.get("steps", []), catch_return=False)
+                iterations.append({"value": item, "result": iteration_result})
+                if back_after_each:
+                    self.device.press("back")
+        except FlowReturn:
+            if previous_value is None:
+                self.context.pop(var_name, None)
+            else:
+                self.context[var_name] = previous_value
+            raise
+
+        if previous_value is None:
+            self.context.pop(var_name, None)
+        else:
+            self.context[var_name] = previous_value
+
+        return {"iterations": iterations}
+
+    def _execute_step(self, step: Dict[str, Any]) -> Any:
+        action = step.get("action")
+        if action == "if":
+            return self._perform_if(step)
+        if action == "loop":
+            return self._perform_loop(step)
+        return self._perform_action(step)
+
+    def _execute_steps(self, steps: List[Dict[str, Any]], catch_return: bool = True) -> List[Dict[str, Any]]:
         results: List[Dict[str, Any]] = []
         for step in steps:
+            step = normalize_step(step)
             step["selector"] = self._resolve_data(step.get("selector", {}))
             step["value"] = self._resolve_data(step.get("value"))
             step["message"] = self._resolve_data(step.get("message"))
+            step["condicao"] = self._resolve_data(step.get("condicao"))
+            step["over"] = self._resolve_data(step.get("over"))
+            step["steps"] = [normalize_step(s) for s in step.get("steps", [])]
+            step["then"] = [normalize_step(s) for s in step.get("then", [])]
+            step["else"] = [normalize_step(s) for s in step.get("else", [])]
             try:
-                result = self._perform_action(step)
+                result = self._execute_step(step)
+            except FlowReturn as flow_return:
+                if catch_return:
+                    return [
+                        {"step": step, "result": "return", "value": flow_return.value}
+                    ]
+                raise
             except Exception as error:
                 logger.warning("Step failed '%s': %s", step.get("name") or step.get("action"), error)
                 self._handle_failure(step.get("on_failure"))
@@ -162,3 +275,26 @@ class FlowRunner:
                 raise
             results.append({"step": step, "result": result})
         return results
+
+    def _run_launch(self, launch: Dict[str, Any]) -> None:
+        if not self.flow_package:
+            return
+        self.device.app_start(self.flow_package)
+        wait_identifier = launch.get("wait_identifier")
+        timeout = launch.get("timeout", 10)
+        if wait_identifier:
+            self.element_finder.wait_for({"containsText": wait_identifier}, timeout=timeout)
+
+    def run_flow(self, flow: Dict[str, Any]) -> List[Dict[str, Any]]:
+        self.context = flow.get("variables", {}).copy() if isinstance(flow.get("variables"), dict) else {}
+        self.flow_package = flow.get("package")
+        self.flow_path = Path(flow.get("_flow_path")) if flow.get("_flow_path") else None
+        self._load_file_variables(flow)
+
+        launch = flow.get("launch")
+        if launch:
+            self._run_launch(launch)
+        elif self.flow_package and not any(step.get("action") == "launch_app" for step in get_steps(flow)):
+            self.device.app_start(self.flow_package)
+
+        return self._execute_steps(get_steps(flow))

@@ -4,6 +4,8 @@ from typing import Any, Dict, List
 
 TARGET_KEY_MAP = {
     "classe": "className",
+    "class": "className",
+    "resource_id": "resourceId",
     "resourceId": "resourceId",
     "texto": "text",
     "texto_contem": "containsText",
@@ -28,6 +30,11 @@ ACTION_MAP = {
     "log": "log",
     "launch_app": "launch_app",
     "dump": "dump",
+    "find_all": "find_all",
+    "tap_all": "tap_all",
+    "return": "return",
+    "if": "if",
+    "loop": "loop",
 }
 
 
@@ -37,11 +44,12 @@ def load_flow(path: str) -> Dict[str, Any]:
         flow = json.load(handle)
 
     if isinstance(flow, list):
-        return {"steps": flow}
+        flow = {"steps": flow}
 
     if "steps" not in flow:
         raise ValueError("Flow file must contain a top-level 'steps' array")
 
+    flow["_flow_path"] = str(config_path.resolve())
     return flow
 
 
@@ -72,6 +80,14 @@ def normalize_step(step: Dict[str, Any]) -> Dict[str, Any]:
         "continue_on_failure": step.get("continue_on_failure", False),
         "on_failure": step.get("on_failure", []),
         "message": step.get("message") or step.get("mensagem"),
+        "over": step.get("over"),
+        "var_name": step.get("var_name"),
+        "back_after_each": step.get("back_after_each", False),
+        "steps": step.get("steps", []),
+        "condicao": step.get("condicao") or step.get("condition"),
+        "then": step.get("then", []),
+        "else": step.get("else", []),
+        "seconds": step.get("seconds"),
     }
     return normalized
 

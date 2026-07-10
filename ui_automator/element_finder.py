@@ -64,5 +64,38 @@ class ElementFinder:
 
         return self.device.xpath(xpath)
 
+    def exists(self, selector: Dict[str, Any], timeout: int = 10) -> bool:
+        try:
+            self.find(selector, timeout=timeout)
+            return True
+        except RuntimeError:
+            return False
+
+    def find_all(self, selector: Dict[str, Any], timeout: int = 10):
+        if not selector:
+            raise ValueError("Selector data is required")
+
+        selector = {k: v for k, v in selector.items() if v is not None}
+        logger.debug("Finding all elements with selector %s", selector)
+
+        exact_keys = {k: selector[k] for k in selector if k in {"resourceId", "className", "text", "description"}}
+        if exact_keys:
+            ui_obj = self.device(**exact_keys)
+            try:
+                return ui_obj.all()
+            except AttributeError:
+                if ui_obj.exists(timeout=timeout):
+                    return [ui_obj]
+
+        fallback = self._fallback_selector(selector)
+        if fallback:
+            try:
+                return fallback.all()
+            except AttributeError:
+                if fallback.exists(timeout=timeout):
+                    return [fallback]
+
+        raise RuntimeError(f"Elements not found for selector: {selector}")
+
     def wait_for(self, selector: Dict[str, Any], timeout: int = 20):
         return self.find(selector, timeout=timeout)
