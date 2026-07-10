@@ -81,6 +81,22 @@ def test_flow_runner_launch_app(patch_components):
     assert device.started == ["br.com.intermedium"]
 
 
+def test_flow_runner_logs_selector_and_value_for_actions(caplog, patch_components):
+    device = DummyDevice()
+    runner = FlowRunner(device)
+
+    with caplog.at_level(logging.INFO):
+        runner.run_flow({
+            "steps": [
+                {"action": "set_text", "selector": {"text": "Saldo"}, "value": "100"},
+            ],
+        })
+
+    assert "set_text" in caplog.text
+    assert "Saldo" in caplog.text
+    assert "100" in caplog.text
+
+
 def test_flow_runner_extract_and_log(patch_components):
     device = DummyDevice()
     runner = FlowRunner(device)

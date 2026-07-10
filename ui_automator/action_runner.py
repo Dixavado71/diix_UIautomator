@@ -125,7 +125,9 @@ class FlowRunner:
         if not condition:
             return False
         if isinstance(condition, list):
+            logger.debug("Evaluating condition list: %s", condition)
             return any(self._condition_met(item, timeout=timeout) for item in condition)
+        logger.debug("Checking condition selector: %s", condition)
         return self.element_finder.exists(condition, timeout=timeout)
 
     def _perform_action(self, step: Dict[str, Any]) -> Any:
@@ -136,24 +138,33 @@ class FlowRunner:
         retries = int(step.get("retries", 0) or 0)
         retry_delay = float(step.get("retry_delay", 0.2) or 0.2)
 
+        resolved_selector = self._resolve_data(selector)
+        resolved_value = self._resolve_data(value)
         logger.info("Performing action: %s", action)
+        if resolved_selector:
+            logger.info("Action selector: %s", resolved_selector)
+        if resolved_value is not None:
+            logger.info("Action value: %s", resolved_value)
 
         def _execute_once() -> Any:
             if action == "wait_for":
                 try:
-                    return self.element_finder.wait_for(selector, timeout=timeout)
+                    logger.debug("Waiting for selector: %s", resolved_selector)
+                    return self.element_finder.wait_for(resolved_selector, timeout=timeout)
                 except Exception:
-                    elements = self._poll_find_all(selector, timeout=timeout)
+                    elements = self._poll_find_all(resolved_selector, timeout=timeout)
                     if elements:
                         return elements[0]
                     raise
             if action == "tap":
-                element = self.element_finder.find(selector, timeout=timeout)
+                logger.debug("Tapping element matching selector: %s", resolved_selector)
+                element = self.element_finder.find(resolved_selector, timeout=timeout)
                 element.click()
                 return element
             if action == "set_text":
-                element = self.element_finder.find(selector, timeout=timeout)
-                element.set_text(value or "")
+                logger.debug("Setting text '%s' in element matching selector: %s", resolved_value, resolved_selector)
+                element = self.element_finder.find(resolved_selector, timeout=timeout)
+                element.set_text(resolved_value or "")
                 return element
             if action == "dump":
                 return self.dump_manager.refresh_dump()
@@ -175,12 +186,13 @@ class FlowRunner:
                 self.device.app_start(package)
                 return {"launched": package}
             if action == "extract":
+                logger.debug("Extracting text from selector: %s", resolved_selector)
                 try:
-                    element = self.element_finder.find(selector, timeout=timeout)
+                    element = self.element_finder.find(resolved_selector, timeout=timeout)
                 except Exception:
                     elements = []
                     try:
-                        elements = self.element_finder.find_all(selector, timeout=timeout)
+                        elements = self.element_finder.find_all(resolved_selector, timeout=timeout)
                     except Exception:
                         elements = []
                     if elements:
@@ -194,13 +206,16 @@ class FlowRunner:
                     self._store_variable(save_as, text_value)
                 return text_value
             if action == "find_all":
-                elements = self.element_finder.find_all(selector, timeout=timeout)
+                logger.debug("Finding all elements with selector: %s", resolved_selector)
+                elements = self.element_finder.find_all(resolved_selector, timeout=timeout)
                 return elements
             if action == "wait_for_any":
-                elements = self._poll_find_all(selector, timeout=timeout)
+                logger.debug("Waiting for any element matching selector: %s", resolved_selector)
+                elements = self._poll_find_all(resolved_selector, timeout=timeout)
                 return elements
             if action == "tap_all":
-                elements = self.element_finder.find_all(selector, timeout=timeout)
+                logger.debug("Tapping all elements matching selector: %s", resolved_selector)
+                elements = self.element_finder.find_all(resolved_selector, timeout=timeout)
                 results = []
                 for element in elements:
                     element.click()
@@ -249,6 +264,7 @@ class FlowRunner:
         timeout = step.get("timeout", 10)
         matched = self._condition_met(condition, timeout=timeout)
         branch = step.get("then") if matched else step.get("else")
+        logger.info("If condition matched=%s for selector: %s", matched, condition)
 
         result = {
             "matched": matched,
